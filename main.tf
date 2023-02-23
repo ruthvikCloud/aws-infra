@@ -139,5 +139,5 @@ resource "aws_instance" "webapp-server" {
 
   lifecycle {
     prevent_destroy = false
-    }
+  }
 }
