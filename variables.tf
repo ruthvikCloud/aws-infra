@@ -1,5 +1,5 @@
 
-variable "profile" {
+variable "aws_profile" {
   type = string
 }
 
