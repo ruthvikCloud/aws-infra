@@ -1,5 +1,7 @@
+# creating VPC
 resource "aws_vpc" "vpc" {
   cidr_block = var.cidr_block
+
   tags = {
     Name = "VPC ${var.vpc_id}"
   }
@@ -9,12 +11,12 @@ data "aws_availability_zones" "all" {
   state = "available"
 }
 
+# Creating public subnet
 resource "aws_subnet" "public_subnet" {
-  count                   = var.public_subnet
-  vpc_id                  = aws_vpc.vpc.id
-  cidr_block              = cidrsubnet(var.cidr_block, 8, count.index)
-  availability_zone       = element(data.aws_availability_zones.all.names, count.index % length(data.aws_availability_zones.all.names))
-  map_public_ip_on_launch = "true"
+  count             = var.public_subnet
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = cidrsubnet(var.cidr_block, 8, count.index)
+  availability_zone = element(data.aws_availability_zones.all.names, count.index % length(data.aws_availability_zones.all.names))
 
   tags = {
     Name = "Public subnet ${count.index + 1} - VPC ${var.vpc_id}"
@@ -73,12 +75,13 @@ resource "aws_route_table_association" "aws_private_route_table_association" {
   route_table_id = aws_route_table.private_route_table.id
 }
 
-resource "aws_security_group" "application-sg" {
-  name        = "${var.aws_profile}-application-sg"
-  description = "Application security group to allow inbound from the VPC"
+resource "aws_security_group" "application" {
+  name        = "application"
+  description = "Allow TLS inbound/outbound traffic"
   vpc_id      = aws_vpc.vpc.id
-  depends_on  = [aws_vpc.vpc]
+
   ingress {
+    description = "TLS from VPC"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -86,6 +89,7 @@ resource "aws_security_group" "application-sg" {
   }
 
   ingress {
+    description = "TLS from VPC"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -93,6 +97,7 @@ resource "aws_security_group" "application-sg" {
   }
 
   ingress {
+    description = "TLS from VPC"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -100,14 +105,22 @@ resource "aws_security_group" "application-sg" {
   }
 
   ingress {
+    description = "TLS from VPC"
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   tags = {
-    Name = "${var.aws_profile}-sg"
+    Name = "allow_tls"
   }
 }
 
@@ -119,25 +132,44 @@ data "aws_ami" "amzLinux" {
   }
 }
 
-resource "aws_instance" "webapp-server" {
-  ami                     = data.aws_ami.amzLinux.id
-  instance_type           = "t2.micro"
-  disable_api_termination = false
-  ebs_optimized           = false
-  root_block_device {
-    volume_size           = 50
-    volume_type           = "gp2"
-    delete_on_termination = true
-  }
-  vpc_security_group_ids = [aws_security_group.application-sg.id]
-  subnet_id              = aws_subnet.public_subnet[0].id
-  key_name               = "ec2-ssh"
 
+resource "aws_instance" "webapp" {
+  ami                         = data.aws_ami.amzLinux.id
+  instance_type               = "t2.micro"
+  disable_api_termination     = true
+  associate_public_ip_address = true
+
+  security_groups = [
+    aws_security_group.application.id
+  ]
+
+  source_dest_check = true
+
+  subnet_id = aws_subnet.public_subnet[0].id
   tags = {
-    Name = "Webapp EC2 Instance"
+    "Name" = "MyWebappServer"
   }
+
+  tenancy = "default"
+
+  vpc_security_group_ids = [
+    aws_security_group.application.id
+  ]
 
   lifecycle {
     prevent_destroy = false
   }
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_put_response_hop_limit = 1
+    http_tokens                 = "optional"
+  }
+
+  root_block_device {
+    delete_on_termination = true
+    volume_size           = 50
+    volume_type           = "gp2"
+  }
+
 }
