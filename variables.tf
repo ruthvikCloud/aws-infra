@@ -30,3 +30,15 @@ variable "private_availability_zones" {
 variable "vpc_id" {
   type = number
 }
+
+variable "db_password" {
+  type      = string
+  sensitive = true
+}
+variable "db_name" {
+  type = string
+}
+
+variable "db_username" {
+  type = string
+}
