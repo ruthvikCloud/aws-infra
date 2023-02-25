@@ -173,3 +173,57 @@ resource "aws_instance" "webapp" {
   }
 
 }
+
+resource "aws_security_group" "mydb1" {
+  name = "mydb1"
+
+  description = "RDS postgres servers (terraform-managed)"
+  vpc_id      = aws_vpc.vpc.id
+
+  # Only postgres in
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.application.id]
+  }
+
+  # Allow all outbound traffic.
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_db_instance" "mydb1" {
+  allocated_storage       = 20 # gigabytes
+  backup_retention_period = 0  # in days
+  engine                  = "postgres"
+  engine_version          = "14.6"
+  identifier              = "mydb1"
+  instance_class          = "db.t3.micro"
+  multi_az                = false
+  db_name                 = var.db_name
+  password                = var.db_password
+  port                    = 5432
+  publicly_accessible     = true
+  storage_encrypted       = true # you should always do this
+  storage_type            = "gp2"
+  username                = var.db_username
+  skip_final_snapshot     = true
+  apply_immediately       = true
+  security_group_names = [aws_security_group.mydb1.id]
+}
+
+resource "aws_eip" "ec2_elastic_ip" {
+  instance = aws_instance.webapp.id
+  vpc      = true
+  tags = {
+    Name = "elastic_ip_ec2"
+  }
+}
+
+
+
