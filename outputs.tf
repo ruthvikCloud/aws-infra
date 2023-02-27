@@ -4,20 +4,8 @@ output "rds_hostname" {
   sensitive   = false
 }
 
-output "rds_port" {
-  description = "RDS instance port"
-  value       = aws_db_instance.mydb1.port
+output "aws_instance" {
+  description = "EC2 Public Ip"
+  value       = aws_instance.webapp.public_ip
   sensitive   = false
-}
-
-output "rds_username" {
-  description = "RDS instance root username"
-  value       = aws_db_instance.mydb1.username
-  sensitive   = false
-}
-
-output "ec2_web_public_ip" {
-  description = "The Public IP address of the web server"
-  value       = aws_eip.ec2_elastic_ip.public_ip
-  depends_on  = [aws_eip.ec2_elastic_ip]
 }

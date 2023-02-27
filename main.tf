@@ -124,17 +124,17 @@ resource "aws_security_group" "application" {
   }
 }
 
-data "aws_ami" "amzLinux" {
-  most_recent = true
-  filter {
-    name   = "name"
-    values = ["csye6225*"]
-  }
-}
+#data "aws_ami" "amzLinux" {
+#  most_recent = true
+#  filter {
+#    name   = "name"
+#    values = ["csye6225*,ami*"]
+#  }
+#}
 
 
 resource "aws_instance" "webapp" {
-  ami                         = data.aws_ami.amzLinux.id
+  ami                         = "ami-0dfcb1ef8550277af"
   instance_type               = "t2.micro"
   disable_api_termination     = true
   associate_public_ip_address = true
@@ -171,14 +171,14 @@ resource "aws_instance" "webapp" {
     volume_size           = 50
     volume_type           = "gp2"
   }
-
+  iam_instance_profile = aws_iam_instance_profile.web_instance_profile.id
 }
 
 resource "aws_security_group" "mydb1" {
-  name = "mydb1"
-
-  description = "RDS postgres servers (terraform-managed)"
+  name        = "mydb1"
   vpc_id      = aws_vpc.vpc.id
+  description = "RDS postgres servers (terraform-managed)"
+
 
   # Only postgres in
   ingress {
@@ -208,22 +208,82 @@ resource "aws_db_instance" "mydb1" {
   db_name                 = var.db_name
   password                = var.db_password
   port                    = 5432
-  publicly_accessible     = true
+  publicly_accessible     = false
   storage_encrypted       = true # you should always do this
   storage_type            = "gp2"
   username                = var.db_username
   skip_final_snapshot     = true
   apply_immediately       = true
-  security_group_names = [aws_security_group.mydb1.id]
+  vpc_security_group_ids  = [aws_security_group.mydb1.id]
+  db_subnet_group_name    = aws_db_subnet_group.postgresql_subnet_group.name
 }
 
-resource "aws_eip" "ec2_elastic_ip" {
-  instance = aws_instance.webapp.id
-  vpc      = true
+
+
+
+resource "aws_db_subnet_group" "postgresql_subnet_group" {
+  name       = "postgresubgroup"
+  subnet_ids = [aws_subnet.private_subnet[0].id, aws_subnet.private_subnet[1].id, aws_subnet.private_subnet[2].id]
+
   tags = {
-    Name = "elastic_ip_ec2"
+    Name = "PostgreSQL subnet group"
   }
 }
 
 
+resource "aws_iam_role" "web_iam_role" {
+  name               = "web_iam_role"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
 
+resource "aws_iam_instance_profile" "web_instance_profile" {
+  name = "web_instance_profile"
+  role = aws_iam_role.web_iam_role.name
+}
+
+resource "aws_iam_role_policy" "web_iam_role_policy" {
+  name   = "web_iam_role_policy"
+  role   = aws_iam_role.web_iam_role.id
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": ["arn:aws:s3:::bucket-name"]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": ["arn:aws:s3:::bucket-name/*"]
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_s3_bucket" "apps_bucket" {
+  bucket = "ruthviktestbucket"
+  tags = {
+    Name = "ruthviktestbucket"
+  }
+}
