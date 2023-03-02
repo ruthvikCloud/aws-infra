@@ -205,6 +205,7 @@ resource "aws_db_instance" "mydb1" {
   engine                  = "postgres"
   engine_version          = "14.6"
   identifier              = var.db_username
+
   instance_class          = "db.t3.micro"
   multi_az                = false
   db_name                 = var.db_name
@@ -235,6 +236,7 @@ resource "aws_db_subnet_group" "postgresql_subnet_group" {
 
 resource "aws_iam_role" "EC2-CSYE6225" {
   name               = "EC2-CSYE6225"
+
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -251,6 +253,7 @@ resource "aws_iam_role" "EC2-CSYE6225" {
 }
 EOF
 }
+
 
 resource "aws_iam_instance_profile" "web_instance_profile" {
   name = "web_instance_profile"
@@ -301,4 +304,5 @@ resource "aws_s3_bucket_lifecycle_configuration" "bucket_life_cycle" {
       days          = 30
     }
   }
+
 }
