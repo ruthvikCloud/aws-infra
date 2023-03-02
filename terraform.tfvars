@@ -5,7 +5,3 @@ private_subnet             = 3
 public_availability_zones  = 3
 private_availability_zones = 3
 vpc_id                     = 3
-aws_profile                = "dev"
-db_name                    = "testdb"
-db_username                = "postgres"
-db_password                = "password"
