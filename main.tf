@@ -204,7 +204,7 @@ resource "aws_db_instance" "mydb1" {
   backup_retention_period = 0  # in days
   engine                  = "postgres"
   engine_version          = "14.6"
-  identifier              = "mydb1"
+  identifier              = var.db_username
   instance_class          = "db.t3.micro"
   multi_az                = false
   db_name                 = var.db_name
@@ -228,13 +228,13 @@ resource "aws_db_subnet_group" "postgresql_subnet_group" {
   subnet_ids = [aws_subnet.private_subnet[0].id, aws_subnet.private_subnet[1].id, aws_subnet.private_subnet[2].id]
 
   tags = {
-    Name = "PostgreSQL subnet group"
+    Name = "PostgresSQL subnet group"
   }
 }
 
 
-resource "aws_iam_role" "web_iam_role" {
-  name               = "web_iam_role"
+resource "aws_iam_role" "EC2-CSYE6225" {
+  name               = "EC2-CSYE6225"
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -254,12 +254,12 @@ EOF
 
 resource "aws_iam_instance_profile" "web_instance_profile" {
   name = "web_instance_profile"
-  role = aws_iam_role.web_iam_role.name
+  role = aws_iam_role.EC2-CSYE6225.name
 }
 
-resource "aws_iam_role_policy" "web_iam_role_policy" {
-  name   = "web_iam_role_policy"
-  role   = aws_iam_role.web_iam_role.id
+resource "aws_iam_role_policy" "WebAppS3" {
+  name   = "WebAppS3"
+  role   = aws_iam_role.EC2-CSYE6225.id
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -286,7 +286,19 @@ EOF
 resource "aws_s3_bucket" "apps_bucket" {
   bucket        = "bucket${formatdate("YYYYMMDDhhmmss", timestamp())}"
   force_destroy = true
+  
   tags = {
     Name = "ruthviktestbucket"
+  }
+}
+resource "aws_s3_bucket_lifecycle_configuration" "bucket_life_cycle" {
+  bucket = aws_s3_bucket.apps_bucket.bucket
+  rule {
+    id     = "log"
+    status = "Enabled"
+    transition {
+      storage_class = "STANDARD_IA"
+      days          = 30
+    }
   }
 }
