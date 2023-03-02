@@ -206,19 +206,19 @@ resource "aws_db_instance" "mydb1" {
   engine_version          = "14.6"
   identifier              = var.db_username
 
-  instance_class          = "db.t3.micro"
-  multi_az                = false
-  db_name                 = var.db_name
-  password                = var.db_password
-  port                    = 5432
-  publicly_accessible     = false
-  storage_encrypted       = true # you should always do this
-  storage_type            = "gp2"
-  username                = var.db_username
-  skip_final_snapshot     = true
-  apply_immediately       = true
-  vpc_security_group_ids  = [aws_security_group.mydb1.id]
-  db_subnet_group_name    = aws_db_subnet_group.postgresql_subnet_group.name
+  instance_class         = "db.t3.micro"
+  multi_az               = false
+  db_name                = var.db_name
+  password               = var.db_password
+  port                   = 5432
+  publicly_accessible    = false
+  storage_encrypted      = true # you should always do this
+  storage_type           = "gp2"
+  username               = var.db_username
+  skip_final_snapshot    = true
+  apply_immediately      = true
+  vpc_security_group_ids = [aws_security_group.mydb1.id]
+  db_subnet_group_name   = aws_db_subnet_group.postgresql_subnet_group.name
 }
 
 
@@ -235,7 +235,7 @@ resource "aws_db_subnet_group" "postgresql_subnet_group" {
 
 
 resource "aws_iam_role" "EC2-CSYE6225" {
-  name               = "EC2-CSYE6225"
+  name = "EC2-CSYE6225"
 
   assume_role_policy = <<EOF
 {
