@@ -284,7 +284,7 @@ EOF
 }
 
 resource "aws_s3_bucket" "apps_bucket" {
-  bucket = "bucket${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  bucket        = "bucket${formatdate("YYYYMMDDhhmmss", timestamp())}"
   force_destroy = true
   tags = {
     Name = "ruthviktestbucket"
