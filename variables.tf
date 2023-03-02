@@ -42,3 +42,11 @@ variable "db_name" {
 variable "db_username" {
   type = string
 }
+
+variable "server_port" {
+  type = string
+}
+
+variable "time_zone" {
+  type = string
+}

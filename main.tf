@@ -124,21 +124,21 @@ resource "aws_security_group" "application" {
   }
 }
 
-#data "aws_ami" "amzLinux" {
-#  most_recent = true
-#  filter {
-#    name   = "name"
-#    values = ["csye6225*,ami*"]
-#  }
-#}
+data "aws_ami" "amzLinux" {
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["csye6225*"]
+  }
+}
 
 
 resource "aws_instance" "webapp" {
-  ami                         = "ami-0dfcb1ef8550277af"
+  ami                         = data.aws_ami.amzLinux.id #"ami-0dfcb1ef8550277af"
   instance_type               = "t2.micro"
   disable_api_termination     = true
   associate_public_ip_address = true
-
+  key_name                    = "ec2-ssh"
   security_groups = [
     aws_security_group.application.id
   ]
@@ -172,6 +172,8 @@ resource "aws_instance" "webapp" {
     volume_type           = "gp2"
   }
   iam_instance_profile = aws_iam_instance_profile.web_instance_profile.id
+  user_data            = templatefile("user_data.sh", { db_host = aws_db_instance.mydb1.address, db_port = aws_db_instance.mydb1.port, db_user = aws_db_instance.mydb1.username, db_pwd = var.db_password, db = aws_db_instance.mydb1.db_name, db_engine = aws_db_instance.mydb1.engine, s3_bucket = aws_s3_bucket.apps_bucket.bucket, s3_region = aws_s3_bucket.apps_bucket.region })
+
 }
 
 resource "aws_security_group" "mydb1" {
@@ -265,7 +267,7 @@ resource "aws_iam_role_policy" "web_iam_role_policy" {
     {
       "Effect": "Allow",
       "Action": ["s3:ListBucket"],
-      "Resource": ["arn:aws:s3:::bucket-name"]
+      "Resource": ["${aws_s3_bucket.apps_bucket.arn}"]
     },
     {
       "Effect": "Allow",
@@ -274,7 +276,7 @@ resource "aws_iam_role_policy" "web_iam_role_policy" {
         "s3:GetObject",
         "s3:DeleteObject"
       ],
-      "Resource": ["arn:aws:s3:::bucket-name/*"]
+      "Resource": ["${aws_s3_bucket.apps_bucket.arn}/*"]
     }
   ]
 }
@@ -282,7 +284,8 @@ EOF
 }
 
 resource "aws_s3_bucket" "apps_bucket" {
-  bucket = "ruthviktestbucket"
+  bucket = "bucket${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  force_destroy = true
   tags = {
     Name = "ruthviktestbucket"
   }
