@@ -50,3 +50,6 @@ variable "server_port" {
 variable "time_zone" {
   type = string
 }
+variable "domain_name" {
+  type = string
+}
