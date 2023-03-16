@@ -306,3 +306,16 @@ resource "aws_s3_bucket_lifecycle_configuration" "bucket_life_cycle" {
   }
 
 }
+
+data "aws_route53_zone" "hosted_zone" {
+  name = "prod.${var.domain_name}"
+}
+
+resource "aws_route53_record" "profile_record" {
+  zone_id = data.aws_route53_zone.hosted_zone.id
+  name    = "prod.${var.domain_name}"
+  type    = "A"
+  ttl     = 60
+  records = [aws_instance.webapp.public_ip]
+
+}
