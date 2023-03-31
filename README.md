@@ -1,6 +1,6 @@
 ## CSYE6225- Network Structures and Cloud Computing
 
-## Assignment 3: Project description 
+
 
 <br>Infrastructure as Code: This assignment will focus on setting up networking resources such as Virtual Private Cloud (VPC), Internet Gateway, Route Table, and Routes. We use Terraform for infrastructure setup and tear down. <br><br>
 

@@ -304,7 +304,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "bucket_life_cycle" {
       days          = 30
     }
   }
-
 }
 
 data "aws_route53_zone" "hosted_zone" {
@@ -318,4 +317,10 @@ resource "aws_route53_record" "profile_record" {
   ttl     = 60
   records = [aws_instance.webapp.public_ip]
 
+}
+
+
+resource "aws_iam_role_policy_attachment" "test-attach" {
+  role       = aws_iam_role.EC2-CSYE6225.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
