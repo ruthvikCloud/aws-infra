@@ -20,3 +20,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable webapp.service
 sudo systemctl start webapp.service
 sudo systemctl status webapp.service
+sudo systemctl enable amazon-cloudwatch-agent
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+    -a fetch-config \
+    -m ec2 \
+    -c file:/opt/aws/amazon-cloudwatch-agent/etc/cloud-watch-agent.json \
+    -s
