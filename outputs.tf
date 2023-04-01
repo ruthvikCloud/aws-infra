@@ -9,3 +9,8 @@ output "aws_instance" {
   value       = aws_instance.webapp.public_ip
   sensitive   = false
 }
+
+output "load_balancer_dns" {
+  value     = aws_lb.webapp_lb.dns_name
+  sensitive = false
+}
