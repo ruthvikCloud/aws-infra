@@ -81,35 +81,20 @@ resource "aws_security_group" "application" {
   vpc_id      = aws_vpc.vpc.id
 
   ingress {
-    description = "TLS from VPC"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
+    description     = "TLS from VPC"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    description = "TLS from VPC"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   ingress {
-    description = "TLS from VPC"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "TLS from VPC"
-    from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "TLS from VPC"
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.load_balancer_sg.id]
   }
 
   egress {
@@ -314,8 +299,12 @@ resource "aws_route53_record" "profile_record" {
   zone_id = data.aws_route53_zone.hosted_zone.id
   name    = "prod.${var.domain_name}"
   type    = "A"
-  ttl     = 60
-  records = [aws_instance.webapp.public_ip]
+
+  alias {
+    evaluate_target_health = true
+    name                   = aws_lb.webapp_lb.dns_name
+    zone_id                = aws_lb.webapp_lb.zone_id
+  }
 
 }
 
@@ -323,4 +312,71 @@ resource "aws_route53_record" "profile_record" {
 resource "aws_iam_role_policy_attachment" "test-attach" {
   role       = aws_iam_role.EC2-CSYE6225.name
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+resource "aws_security_group" "load_balancer_sg" {
+
+  name        = "load_balancer_sg"
+  description = "Allow TLS inbound/outbound traffic"
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "TLS from VPC"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_lb_target_group" "webapp_target" {
+  name     = "webapptarget"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.vpc.id
+  health_check {
+    path     = "/"
+    interval = 30
+  }
+}
+
+resource "aws_lb_target_group_attachment" "webapp_att1" {
+  target_group_arn = aws_lb_target_group.webapp_target.arn
+  target_id        = aws_instance.webapp.id
+  port             = 80
+}
+
+resource "aws_lb" "webapp_lb" {
+  name                       = "webapplb"
+  internal                   = false
+  load_balancer_type         = "application"
+  security_groups            = [aws_security_group.load_balancer_sg.id]
+  subnets                    = [aws_subnet.public_subnet[0].id, aws_subnet.public_subnet[1].id, aws_subnet.public_subnet[2].id]
+  enable_deletion_protection = false
+}
+
+resource "aws_lb_listener" "webapp_listner" {
+  load_balancer_arn = aws_lb.webapp_lb.arn
+  port              = "80"
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.webapp_target.arn
+  }
 }
