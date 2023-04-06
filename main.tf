@@ -81,10 +81,10 @@ resource "aws_security_group" "application" {
   vpc_id      = aws_vpc.vpc.id
 
   ingress {
-    description     = "TLS from VPC"
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
+    description = "TLS from VPC"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -118,48 +118,48 @@ data "aws_ami" "amzLinux" {
 }
 
 
-resource "aws_instance" "webapp" {
-  ami                         = data.aws_ami.amzLinux.id #"ami-0dfcb1ef8550277af"
-  instance_type               = "t2.micro"
-  disable_api_termination     = true
-  associate_public_ip_address = true
-  key_name                    = "ec2-ssh"
-  security_groups = [
-    aws_security_group.application.id
-  ]
-
-  source_dest_check = true
-
-  subnet_id = aws_subnet.public_subnet[0].id
-  tags = {
-    "Name" = "MyWebappServer"
-  }
-
-  tenancy = "default"
-
-  vpc_security_group_ids = [
-    aws_security_group.application.id
-  ]
-
-  lifecycle {
-    prevent_destroy = false
-  }
-
-  metadata_options {
-    http_endpoint               = "enabled"
-    http_put_response_hop_limit = 1
-    http_tokens                 = "optional"
-  }
-
-  root_block_device {
-    delete_on_termination = true
-    volume_size           = 50
-    volume_type           = "gp2"
-  }
-  iam_instance_profile = aws_iam_instance_profile.web_instance_profile.id
-  user_data            = templatefile("user_data.sh", { db_host = aws_db_instance.mydb1.address, db_port = aws_db_instance.mydb1.port, db_user = aws_db_instance.mydb1.username, db_pwd = var.db_password, db = aws_db_instance.mydb1.db_name, db_engine = aws_db_instance.mydb1.engine, s3_bucket = aws_s3_bucket.apps_bucket.bucket, s3_region = aws_s3_bucket.apps_bucket.region })
-
-}
+#resource "aws_instance" "webapp" {
+#  ami                         = data.aws_ami.amzLinux.id #"ami-0dfcb1ef8550277af"
+#  instance_type               = "t2.micro"
+#  disable_api_termination     = true
+#  associate_public_ip_address = true
+#  key_name                    = "ec2-ssh"
+#  security_groups = [
+#    aws_security_group.application.id
+#  ]
+#
+#  source_dest_check = true
+#
+#  subnet_id = aws_subnet.public_subnet[0].id
+#  tags = {
+#    "Name" = "MyWebappServer"
+#  }
+#
+#  tenancy = "default"
+#
+#  vpc_security_group_ids = [
+#    aws_security_group.application.id
+#  ]
+#
+#  lifecycle {
+#    prevent_destroy = false
+#  }
+#
+#  metadata_options {
+#    http_endpoint               = "enabled"
+#    http_put_response_hop_limit = 1
+#    http_tokens                 = "optional"
+#  }
+#
+#  root_block_device {
+#    delete_on_termination = true
+#    volume_size           = 50
+#    volume_type           = "gp2"
+#  }
+#  iam_instance_profile = aws_iam_instance_profile.web_instance_profile.id
+#  user_data            = templatefile("user_data.sh", { db_host = aws_db_instance.mydb1.address, db_port = aws_db_instance.mydb1.port, db_user = aws_db_instance.mydb1.username, db_pwd = var.db_password, db = aws_db_instance.mydb1.db_name, db_engine = aws_db_instance.mydb1.engine, s3_bucket = aws_s3_bucket.apps_bucket.bucket, s3_region = aws_s3_bucket.apps_bucket.region })
+#
+#}
 
 resource "aws_security_group" "mydb1" {
   name        = "mydb1"
@@ -275,6 +275,7 @@ resource "aws_s3_bucket" "apps_bucket" {
   bucket        = "bucket${formatdate("YYYYMMDDhhmmss", timestamp())}"
   force_destroy = true
 
+
   tags = {
     Name = "ruthviktestbucket"
   }
@@ -347,21 +348,21 @@ resource "aws_security_group" "load_balancer_sg" {
 
 resource "aws_lb_target_group" "webapp_target" {
   name     = "webapptarget"
-  port     = 80
+  port     = 3000
   protocol = "HTTP"
   vpc_id   = aws_vpc.vpc.id
   health_check {
-    path     = "/"
+    path     = "/healthz"
     interval = 30
   }
 }
-
-resource "aws_lb_target_group_attachment" "webapp_att1" {
-  target_group_arn = aws_lb_target_group.webapp_target.arn
-  target_id        = aws_instance.webapp.id
-  port             = 80
-}
-
+#
+#resource "aws_lb_target_group_attachment" "webapp_att1" {
+#  target_group_arn = aws_lb_target_group.webapp_target.arn
+#  target_id        = aws_instance.webapp.id
+#  port             = 3000
+#}
+#
 resource "aws_lb" "webapp_lb" {
   name                       = "webapplb"
   internal                   = false
@@ -370,7 +371,7 @@ resource "aws_lb" "webapp_lb" {
   subnets                    = [aws_subnet.public_subnet[0].id, aws_subnet.public_subnet[1].id, aws_subnet.public_subnet[2].id]
   enable_deletion_protection = false
 }
-
+#
 resource "aws_lb_listener" "webapp_listner" {
   load_balancer_arn = aws_lb.webapp_lb.arn
   port              = "80"
@@ -380,3 +381,134 @@ resource "aws_lb_listener" "webapp_listner" {
     target_group_arn = aws_lb_target_group.webapp_target.arn
   }
 }
+
+
+resource "aws_launch_template" "webapp_template" {
+  name          = "webapp_lauch_template"
+  image_id      = data.aws_ami.amzLinux.id
+  instance_type = "t2.micro"
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      volume_size           = 8
+      volume_type           = "gp2"
+      delete_on_termination = true
+    }
+
+  }
+  #  vpc_security_group_ids = [aws_security_group.application.id]
+  network_interfaces {
+    associate_public_ip_address = true
+    device_index                = 0
+    security_groups             = [aws_security_group.application.id]
+    subnet_id                   = aws_subnet.public_subnet[0].id
+  }
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.web_instance_profile.name
+    #    arn  = aws_iam_instance_profile.web_instance_profile.arn
+  }
+  user_data = base64encode(templatefile("user_data.sh", { db_host = aws_db_instance.mydb1.address, db_port = aws_db_instance.mydb1.port, db_user = aws_db_instance.mydb1.username, db_pwd = var.db_password, db = aws_db_instance.mydb1.db_name, db_engine = aws_db_instance.mydb1.engine, s3_bucket = aws_s3_bucket.apps_bucket.bucket, s3_region = aws_s3_bucket.apps_bucket.region }))
+  lifecycle {
+    prevent_destroy = false
+  }
+
+}
+resource "aws_autoscaling_group" "webapp_autoScaling_grp" {
+  name             = "webapp_autoScaling_grp"
+  min_size         = 1
+  max_size         = 3
+  default_cooldown = 60
+  launch_template {
+    version = "$Latest"
+    #    id      = aws_launch_template.webapp_template.id
+    name = aws_launch_template.webapp_template.name
+  }
+  target_group_arns = [aws_lb_target_group.webapp_target.arn]
+  #  availability_zones =  [aws_subnet.public_subnet[0].availability_zone]
+  vpc_zone_identifier = [aws_subnet.public_subnet[0].id]
+}
+
+resource "aws_autoscaling_attachment" "webapp_autoScaling_attachment" {
+  autoscaling_group_name = aws_autoscaling_group.webapp_autoScaling_grp.name
+  lb_target_group_arn    = aws_lb_target_group.webapp_target.arn
+}
+
+resource "aws_cloudwatch_metric_alarm" "high_cpu_alarm" {
+  alarm_name          = "high-cpu-alarm"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 2.5
+  alarm_description   ="This metric checks if CPU usage is higher than 2.5% for the past 2 minutes"
+  alarm_actions       = [aws_autoscaling_policy.scale_up_policy.arn]
+  actions_enabled     = true
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.webapp_autoScaling_grp.name
+  }
+}
+resource "aws_cloudwatch_metric_alarm" "low_cpu_alarm" {
+  alarm_name          = "low-cpu-alarm"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 1
+  alarm_description   = "This metric checks if CPU usage is lower than 1% for the past 2 minutes"
+  alarm_actions       = [aws_autoscaling_policy.scale_down_policy.arn]
+  actions_enabled     = true
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.webapp_autoScaling_grp.name
+  }
+}
+
+resource "aws_autoscaling_policy" "scale_up_policy" {
+  name                   = "scale-up-policy"
+  policy_type            = "SimpleScaling"
+  autoscaling_group_name = aws_autoscaling_group.webapp_autoScaling_grp.name
+  scaling_adjustment     = 1
+  adjustment_type        = "ChangeInCapacity"
+}
+resource "aws_autoscaling_policy" "scale_down_policy" {
+  name                   = "scale_down_policy"
+  policy_type            = "SimpleScaling"
+  autoscaling_group_name = aws_autoscaling_group.webapp_autoScaling_grp.name
+  scaling_adjustment     = -1
+  adjustment_type        = "ChangeInCapacity"
+}
+
+resource "aws_cloudwatch_log_group" "csye6225_log_group" {
+  name = "csye6225"
+}
+
+resource "aws_cloudwatch_log_stream" "csye6225_log_stream" {
+  log_group_name = aws_cloudwatch_log_group.csye6225_log_group.name
+  name           = "webapp"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

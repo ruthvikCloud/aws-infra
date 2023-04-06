@@ -4,11 +4,11 @@ output "rds_hostname" {
   sensitive   = false
 }
 
-output "aws_instance" {
-  description = "EC2 Public Ip"
-  value       = aws_instance.webapp.public_ip
-  sensitive   = false
-}
+#output "aws_instance" {
+#  description = "EC2 Public Ip"
+#  value       = aws_instance.webapp.public_ip
+#  sensitive   = false
+#}
 
 output "load_balancer_dns" {
   value     = aws_lb.webapp_lb.dns_name
