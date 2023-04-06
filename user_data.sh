@@ -26,5 +26,5 @@ sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
     -m ec2 \
     -c file:/opt/aws/amazon-cloudwatch-agent/etc/cloud-watch-agent.json \
     -s
-sudo amazon-linux-extras install epel
-sudo yum install stress
+sudo amazon-linux-extras install epel -y
+sudo yum install stress -y
