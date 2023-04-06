@@ -443,7 +443,7 @@ resource "aws_cloudwatch_metric_alarm" "high_cpu_alarm" {
   period              = 60
   statistic           = "Average"
   threshold           = 2.5
-  alarm_description   ="This metric checks if CPU usage is higher than 2.5% for the past 2 minutes"
+  alarm_description   = "This metric checks if CPU usage is higher than 2.5% for the past 2 minutes"
   alarm_actions       = [aws_autoscaling_policy.scale_up_policy.arn]
   actions_enabled     = true
   dimensions = {
