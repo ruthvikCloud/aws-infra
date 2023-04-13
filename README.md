@@ -29,6 +29,17 @@ The terraform destroy command is a convenient way to destroy all remote objects 
 terraform destroy
 ```
 
+The command to import the SSL certificate:
+```
+aws acm import-certificate \
+--certificate fileb://<file_path_of_crt_file> \
+--certificate-chain fileb://<file_path_of_chain_file \
+--private-key fileb://file_path_of_private_key \
+--region us-east-1 \
+--profile <profile>
+```
+
+
 <br>
 Developer - Ruthvik Garlapati <br>
 NUID - 002727922 </br>
