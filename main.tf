@@ -80,14 +80,6 @@ resource "aws_security_group" "application" {
   description = "Allow TLS inbound/outbound traffic"
   vpc_id      = aws_vpc.vpc.id
 
-  ingress {
-    description = "TLS from VPC"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
 
   ingress {
     description     = "TLS from VPC"
@@ -204,7 +196,7 @@ resource "aws_db_instance" "mydb1" {
   apply_immediately      = true
   vpc_security_group_ids = [aws_security_group.mydb1.id]
   db_subnet_group_name   = aws_db_subnet_group.postgresql_subnet_group.name
-  kms_key_id = aws_kms_key.rdsKey.arn
+  kms_key_id             = aws_kms_key.rdsKey.arn
 }
 
 
@@ -395,8 +387,8 @@ resource "aws_launch_template" "webapp_template" {
       volume_size           = 8
       volume_type           = "gp2"
       delete_on_termination = true
-      encrypted = true
-      kms_key_id = aws_kms_key.ebsKey.arn
+      encrypted             = true
+      kms_key_id            = aws_kms_key.ebsKey.arn
     }
 
   }
@@ -514,7 +506,7 @@ resource "aws_kms_key" "ebsKey" {
       },
       "Action" : "kms:*",
       "Resource" : "*"
-    },
+      },
       {
         "Sid" : "Allow service-linked role use of the customer managed key",
         "Effect" : "Allow",
@@ -533,25 +525,25 @@ resource "aws_kms_key" "ebsKey" {
         "Resource" : "*"
       },
       {
-        "Sid": "Allow attachment of persistent resources",
-        "Effect": "Allow",
-        "Principal": {
-          "AWS": [
+        "Sid" : "Allow attachment of persistent resources",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : [
             "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
           ]
         },
-        "Action": [
+        "Action" : [
           "kms:CreateGrant"
         ],
-        "Resource": "*",
-        "Condition": {
-          "Bool": {
-            "kms:GrantIsForAWSResource": true
+        "Resource" : "*",
+        "Condition" : {
+          "Bool" : {
+            "kms:GrantIsForAWSResource" : true
           }
         }
-        }
-      ]}
-    )
+      }
+    ] }
+  )
 }
 
 resource "aws_kms_key" "rdsKey" {
@@ -567,7 +559,7 @@ resource "aws_kms_key" "rdsKey" {
       },
       "Action" : "kms:*",
       "Resource" : "*"
-    },
+      },
       {
         "Sid" : "Allow service-linked role use of the customer managed key",
         "Effect" : "Allow",
@@ -586,28 +578,28 @@ resource "aws_kms_key" "rdsKey" {
         "Resource" : "*"
       },
       {
-        "Sid": "Allow attachment of persistent resources",
-        "Effect": "Allow",
-        "Principal": {
-          "AWS": [
+        "Sid" : "Allow attachment of persistent resources",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : [
             "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
           ]
         },
-        "Action": [
+        "Action" : [
           "kms:CreateGrant"
         ],
-        "Resource": "*",
-        "Condition": {
-          "Bool": {
-            "kms:GrantIsForAWSResource": true
+        "Resource" : "*",
+        "Condition" : {
+          "Bool" : {
+            "kms:GrantIsForAWSResource" : true
           }
         }
       }
-    ]}
+    ] }
   )
 }
 
-data "aws_caller_identity" "current" { }
+data "aws_caller_identity" "current" {}
 
 
 
