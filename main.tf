@@ -204,6 +204,7 @@ resource "aws_db_instance" "mydb1" {
   apply_immediately      = true
   vpc_security_group_ids = [aws_security_group.mydb1.id]
   db_subnet_group_name   = aws_db_subnet_group.postgresql_subnet_group.name
+  kms_key_id = aws_kms_key.rdsKey.arn
 }
 
 
@@ -374,8 +375,9 @@ resource "aws_lb" "webapp_lb" {
 #
 resource "aws_lb_listener" "webapp_listner" {
   load_balancer_arn = aws_lb.webapp_lb.arn
-  port              = "80"
-  protocol          = "HTTP"
+  port              = "443"
+  protocol          = "HTTPS"
+  certificate_arn   = data.aws_acm_certificate.ssl_certificate.arn
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.webapp_target.arn
@@ -384,7 +386,7 @@ resource "aws_lb_listener" "webapp_listner" {
 
 
 resource "aws_launch_template" "webapp_template" {
-  name          = "webapp_lauch_template"
+  name          = "webapp_launch_template"
   image_id      = data.aws_ami.amzLinux.id
   instance_type = "t2.micro"
   block_device_mappings {
@@ -393,6 +395,8 @@ resource "aws_launch_template" "webapp_template" {
       volume_size           = 8
       volume_type           = "gp2"
       delete_on_termination = true
+      encrypted = true
+      kms_key_id = aws_kms_key.ebsKey.arn
     }
 
   }
@@ -491,9 +495,119 @@ resource "aws_cloudwatch_log_stream" "csye6225_log_stream" {
   name           = "webapp"
 }
 
+data "aws_acm_certificate" "ssl_certificate" {
+  domain   = "prod.${var.domain_name}"
+  types    = ["IMPORTED"]
+  statuses = ["ISSUED"]
+}
 
+resource "aws_kms_key" "ebsKey" {
+  description             = "Symmetric customer-managed KMS key for EBS"
+  deletion_window_in_days = 10
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [{
+      "Sid" : "Enable IAM User Permissions",
+      "Effect" : "Allow",
+      "Principal" : {
+        "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+      },
+      "Action" : "kms:*",
+      "Resource" : "*"
+    },
+      {
+        "Sid" : "Allow service-linked role use of the customer managed key",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : [
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+          ]
+        },
+        "Action" : [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ],
+        "Resource" : "*"
+      },
+      {
+        "Sid": "Allow attachment of persistent resources",
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+          ]
+        },
+        "Action": [
+          "kms:CreateGrant"
+        ],
+        "Resource": "*",
+        "Condition": {
+          "Bool": {
+            "kms:GrantIsForAWSResource": true
+          }
+        }
+        }
+      ]}
+    )
+}
 
+resource "aws_kms_key" "rdsKey" {
+  description             = "Symmetric customer-managed KMS key for EBS"
+  deletion_window_in_days = 10
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [{
+      "Sid" : "Enable IAM User Permissions",
+      "Effect" : "Allow",
+      "Principal" : {
+        "AWS" : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+      },
+      "Action" : "kms:*",
+      "Resource" : "*"
+    },
+      {
+        "Sid" : "Allow service-linked role use of the customer managed key",
+        "Effect" : "Allow",
+        "Principal" : {
+          "AWS" : [
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+          ]
+        },
+        "Action" : [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ],
+        "Resource" : "*"
+      },
+      {
+        "Sid": "Allow attachment of persistent resources",
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+          ]
+        },
+        "Action": [
+          "kms:CreateGrant"
+        ],
+        "Resource": "*",
+        "Condition": {
+          "Bool": {
+            "kms:GrantIsForAWSResource": true
+          }
+        }
+      }
+    ]}
+  )
+}
 
+data "aws_caller_identity" "current" { }
 
 
 
