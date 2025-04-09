@@ -19,6 +19,14 @@ resource "aws_subnet" "public_subnet" {
   availability_zone = element(data.aws_availability_zones.all.names, count.index % length(data.aws_availability_zones.all.names))
 
   tags = {
+
+
+
+
+
+
+
+
     Name = "Public subnet ${count.index + 1} - VPC ${var.vpc_id}"
   }
 }
