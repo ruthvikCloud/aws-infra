@@ -24,7 +24,7 @@ resource "aws_subnet" "public_subnet" {
 
 
 
-    
+
     Name = "Public subnet ${count.index + 1} - VPC ${var.vpc_id}"
   }
 }
